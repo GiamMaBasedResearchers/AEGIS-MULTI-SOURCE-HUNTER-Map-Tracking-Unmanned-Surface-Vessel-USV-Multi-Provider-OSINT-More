@@ -44,7 +44,7 @@ Tips for using the code:
 - the code will start extractions on startup
 - "RUN 2ND PASS" will help you resolve any estimated positions
 
-<img width="1917" height="920" alt="image" src="https://github.com/user-attachments/assets/c349fc69-02b6-4a61-be6f-144d6e0e6721" />
+<img width="1918" height="921" alt="image" src="https://github.com/user-attachments/assets/deb04810-d208-4515-8f09-bcbf743ca896" />
 
 
 
@@ -64,13 +64,33 @@ Tips for using the code:
 - "Dork Engine" only uses one tag at a time there are many limitations and bugs
 - "Custom Targetscan" an interesting TAG + "SD-20" try it
 
-<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/e6debbb2-7eae-4609-b447-40b20be96ae9" />
+<img width="1917" height="920" alt="image" src="https://github.com/user-attachments/assets/c349fc69-02b6-4a61-be6f-144d6e0e6721" />
 
 
 
 3. Version v1 (Standard/Advanced)
 
 AEGIS Multi-Source Hunter v1
+
+An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-research intelligence gathering. This version expands upon v0 by utilizing search engine queries (DuckDuckGo/Google) via DOMParser to discover vessel identifiers (IMO/MMSI) across specific maritime domains. It features parallel "Proxy Race" fetching for high-speed data retrieval, IMO validation and resolution, and a robust database system with JSON import/export and deduplication utilities. Designed for comprehensive multi-provider tracking and geolocation verification.
+
+Disclaimer:
+The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
+
+<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/e6debbb2-7eae-4609-b447-40b20be96ae9" />
+
+
+Tips for using the code:
+
+- "RUN 2ND PASS" will help you resolve any estimated positions
+- "Dork Engine" only uses one tag at a time there are many limitations and bugs
+- "Custom Targetscan" an interesting TAG + "SD-20" try it
+
+
+
+4. Version v1 (Standard/Advanced)
+
+AEGIS Multi-Source Hunter v2
 
 An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-research intelligence gathering. This version expands upon v0 by utilizing search engine queries (DuckDuckGo/Google) via DOMParser to discover vessel identifiers (IMO/MMSI) across specific maritime domains. It features parallel "Proxy Race" fetching for high-speed data retrieval, IMO validation and resolution, and a robust database system with JSON import/export and deduplication utilities. Designed for comprehensive multi-provider tracking and geolocation verification.
 
@@ -85,5 +105,6 @@ Tips for using the code:
 - "RUN 2ND PASS" will help you resolve any estimated positions
 - "Dork Engine" only uses one tag at a time there are many limitations and bugs
 - "Custom Targetscan" an interesting TAG + "SD-20" try it
+
 
 This code is provided by: "GiamMa-based researchers SDR R&D IoT" | @GiammaIoT2

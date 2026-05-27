@@ -77,14 +77,14 @@ An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-r
 Disclaimer:
 The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
 
-<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/e6debbb2-7eae-4609-b447-40b20be96ae9" />
-
-
 Tips for using the code:
 
 - "RUN 2ND PASS" will help you resolve any estimated positions
 - "Dork Engine" only uses one tag at a time there are many limitations and bugs
 - "Custom Targetscan" an interesting TAG + "SD-20" try it
+
+
+<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/e6debbb2-7eae-4609-b447-40b20be96ae9" />
 
 
 
@@ -97,14 +97,13 @@ An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-r
 Disclaimer:
 The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
 
-<img width="1918" height="922" alt="image" src="https://github.com/user-attachments/assets/cc257ac3-f900-4b5a-9979-e26a41fa9bd7" />
-
-
 Tips for using the code:
 
 - "RUN 2ND PASS" will help you resolve any estimated positions
 - "Dork Engine" only uses one tag at a time there are many limitations and bugs
 - "Custom Targetscan" an interesting TAG + "SD-20" try it
 
+
+<img width="1918" height="922" alt="image" src="https://github.com/user-attachments/assets/cc257ac3-f900-4b5a-9979-e26a41fa9bd7" />
 
 This code is provided by: "GiamMa-based researchers SDR R&D IoT" | @GiammaIoT2

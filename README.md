@@ -24,3 +24,37 @@ https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default
 Try & Via AEGIS AGGREGATOR HUB / AEGIS MULTI-SOURCE HUNTER / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More
 
 https://raw.githack.com/GiamMaBasedResearchers/AEGIS-MULTI-SOURCE-HUNTER-Map-Tracking-Unmanned-Surface-Vessel-USV-Multi-Provider-OSINT-More/main/AEGIS_AGGREGATOR.html
+
+
+Desciption:
+
+1. Hub Aggregator
+
+AEGIS Aggregator Hub
+
+A central dashboard interface designed to launch and manage different versions of the AEGIS tracking modules. This hub serves as a unified entry point, allowing users to seamlessly switch between the Baseline (v0), Standard (v1), and Advanced (v2) iterations of the platform. It features a responsive, "cyber" aesthetic UI with iframe-based loading capabilities for accessing the various tools.
+
+Disclaimer:
+The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
+
+
+2. Version v0 (Baseline)
+
+AEGIS Multi-Source Hunter v0
+
+The baseline module for map tracking and analysis of Unmanned Surface Vessels (USV) and maritime assets. This tool performs automated tag-based queries against public maritime data providers to identify vessel identifiers (MMSI). It features a "Multi-Source Hunter" logic that verifies coordinates across multiple network endpoints and includes a "Second Pass" recovery mechanism to retrieve precise geolocation data when primary sources are unavailable. Visualizes results on an interactive Leaflet map.
+
+Disclaimer:
+The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
+
+
+3. Version v1 (Standard/Advanced)
+
+AEGIS Multi-Source Hunter v1
+
+An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-research intelligence gathering. This version expands upon v0 by utilizing search engine queries (DuckDuckGo/Google) via DOMParser to discover vessel identifiers (IMO/MMSI) across specific maritime domains. It features parallel "Proxy Race" fetching for high-speed data retrieval, IMO validation and resolution, and a robust database system with JSON import/export and deduplication utilities. Designed for comprehensive multi-provider tracking and geolocation verification.
+
+Disclaimer:
+The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
+
+This code is provided by: "GiamMa-based researchers SDR R&D IoT" | @GiammaIoT2

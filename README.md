@@ -1,6 +1,6 @@
 AEGIS MULTI-SOURCE HUNTER / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More
 
-Obviously, there will be several fixes to be made, and the code isn't clean. As always, you can use the plain HTML locally 👋👋👋
+Obviously, there will be several fixes to be made, and the code isn't clean, and you will find entities that appear to be false positives but are not always false positives. As always, you can use the plain HTML locally 👋👋👋
 
 To preview GitHub HTML files, use these services by pasting the links:
 
@@ -37,6 +37,9 @@ A central dashboard interface designed to launch and manage different versions o
 Disclaimer:
 The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
 
+<img width="1917" height="920" alt="image" src="https://github.com/user-attachments/assets/c349fc69-02b6-4a61-be6f-144d6e0e6721" />
+
+
 
 2. Version v0 (Baseline)
 
@@ -47,6 +50,9 @@ The baseline module for map tracking and analysis of Unmanned Surface Vessels (U
 Disclaimer:
 The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
 
+<img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/e6debbb2-7eae-4609-b447-40b20be96ae9" />
+
+
 
 3. Version v1 (Standard/Advanced)
 
@@ -56,5 +62,9 @@ An advanced OSINT analysis module featuring a dedicated "Dork Engine" for deep-r
 
 Disclaimer:
 The code is for educational, training, analysis, & security purposes, & is intended for understanding & knowledge.
+
+<img width="1918" height="922" alt="image" src="https://github.com/user-attachments/assets/cc257ac3-f900-4b5a-9979-e26a41fa9bd7" />
+
+
 
 This code is provided by: "GiamMa-based researchers SDR R&D IoT" | @GiammaIoT2

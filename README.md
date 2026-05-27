@@ -1,4 +1,4 @@
-EGIS MULTI-SOURCE HUNTER / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More
+AEGIS MULTI-SOURCE HUNTER / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More
 
 Obviously, there will be several fixes to be made, and the code isn't clean. As always, you can use the plain HTML locally 👋👋👋
 

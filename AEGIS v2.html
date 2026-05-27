@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS MULTI-SOURCE HUNTER v2 / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0b0c10;
+            --panel-bg: #1f2833;
+            --accent: #66fcf1;
+            --accent-dim: #45a29e;
+            --text-main: #c5c6c7;
+            --border: #2b3542;
+            --alert: #ff4d4d;
+            --success: #00ff9d;
+            --warn: #ffcc00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            height: 50px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--accent-dim);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+        .brand { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+        .status-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-dim); }
+        .status-badge.active { color: var(--success); animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        main { display: flex; flex: 1; height: calc(100vh - 50px); }
+        .sidebar {
+            width: 420px; min-width: 420px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 10;
+        }
+        .section { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+        h3 { font-size: 0.75rem; text-transform: uppercase; color: var(--accent-dim); margin-bottom: 8px; letter-spacing: 1px; }
+        .btn-row { display: flex; gap: 5px; margin-bottom: 6px; }
+        input[type="text"] {
+            background: var(--bg-dark); border: 1px solid var(--border); color: #fff;
+            padding: 7px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+            width: 100%; margin-bottom: 5px;
+        }
+        select {
+            background: var(--bg-dark); border: 1px solid var(--border); color: #fff;
+            padding: 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+            width: 100%; margin-bottom: 5px;
+        }
+        select option { background: var(--bg-dark); color: #fff; }
+        button {
+            cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.7rem;
+            border: none; padding: 7px 6px; width: 100%; transition: 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: #333; color: #fff; }
+        .btn-secondary:hover { background: #444; }
+        .btn-warn { background: #553300; color: var(--warn); border: 1px solid #775500; }
+        .btn-warn:hover { background: #664400; }
+        .btn-dork { background: #1a3a1a; color: #66ff66; border: 1px solid #336633; }
+        .btn-dork:hover { background: #2a4a2a; }
+        .btn-danger { background: #3a1a1a; color: #ff6666; border: 1px solid #663333; }
+        .btn-danger:hover { background: #4a2a2a; }
+        button:disabled { opacity: 0.35; cursor: not-allowed; }
+        .drone-list { flex: 1; overflow-y: auto; background: #080808; padding: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; }
+        .log-line { margin-bottom: 2px; opacity: 0.85; line-height: 1.25; }
+        .log-line.sys { color: var(--accent); }
+        .log-line.ok { color: var(--success); }
+        .log-line.warn { color: var(--warn); }
+        .log-line.err { color: var(--alert); }
+        .log-line.detail { color: #666; font-size: 0.62rem; }
+        .log-line.pass2 { color: #e0a0ff; }
+        .log-line.batch { color: #8ab4f8; font-size: 0.66rem; }
+        .log-line.dork { color: #66ff66; }
+        .log-line.dork-warn { color: #997700; }
+        #map-container { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; background: #0b0c10; }
+        .stats-panel {
+            position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.92);
+            padding: 12px; border: 1px solid var(--accent); border-radius: 4px;
+            pointer-events: none; z-index: 1000; width: 240px;
+        }
+        .stat-item { font-size: 0.78rem; color: #fff; margin-bottom: 2px; font-family: 'Rajdhani'; }
+        .stat-val { font-weight: bold; color: var(--accent); float: right; }
+        .progress-bar-container { width: 100%; height: 3px; background: #111; margin-top: 6px; border-radius: 2px; overflow: hidden; display: none; }
+        .progress-bar-container.visible { display: block; }
+        .progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.12s linear; }
+        .timer { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: #555; margin-top: 3px; }
+        .section-info { font-size: 0.63rem; color: #555; margin-bottom: 8px; line-height: 1.3; }
+        .dork-stats { font-size: 0.63rem; color: #66ff66; margin-top: 4px; min-height: 14px; }
+        .dork-preview { font-size: 0.55rem; color: #444; margin-top: 3px; word-break: break-all; line-height: 1.2; max-height: 34px; overflow: hidden; }
+        .dork-toggles { font-size: 0.56rem; color: #555; margin-bottom: 3px; display: flex; gap: 10px; align-items: center; }
+        .dork-toggles span { cursor: pointer; color: #66ff66; text-decoration: underline; }
+        .provider-config { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+        .provider-chip {
+            display: inline-block; font-size: 0.56rem; color: #446644; cursor: pointer;
+            padding: 2px 6px; background: #0a0f0a; border: 1px solid #1a2a1a;
+            border-radius: 2px; user-select: none; transition: 0.15s;
+        }
+        .provider-chip.active { color: #66ff66; background: #0a1a0a; border-color: #2a4a2a; }
+        .provider-chip:hover { background: #0f1a0f; }
+        .tag-config {
+            max-height: 170px; overflow-y: auto; margin-bottom: 6px; padding: 4px;
+            background: #080808; border: 1px solid var(--border);
+        }
+        .tag-config label {
+            display: inline-block; width: 48%; font-size: 0.56rem; color: #666;
+            cursor: pointer; padding: 1px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tag-config label:hover { color: #999; }
+        .tag-config input { margin-right: 3px; vertical-align: middle; accent-color: #45a29e; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0b0c10; }
+        ::-webkit-scrollbar-thumb { background: var(--border); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">AEGIS <span style="color:#fff; font-weight:400;">MULTI-SOURCE HUNTER v2 / Map Tracking Unmanned Surface Vessel (USV) Multi-Provider & Multi-Network +OSINT & More</span></div>
+    <div class="status-badge" id="sysStatus">READY</div>
+</header>
+
+<main>
+    <div class="sidebar">
+        <div class="section">
+            <h3>System Controls</h3>
+            <div class="btn-row">
+                <button class="btn-primary" id="btnReboot" onclick="toggleScan()">START SCAN</button>
+                <button class="btn-danger" id="btnDedup" onclick="dedupDatabase()">DEDUP DB</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn-secondary" onclick="exportDb()">EXPORT JSON</button>
+                <button class="btn-secondary" onclick="importDb()">IMPORT JSON</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn-warn" id="btnPass2" onclick="runSecondPass()">RUN 2ND PASS</button>
+            </div>
+            <div class="progress-bar-container" id="progressBar">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div class="timer" id="timerDisplay"></div>
+            <input type="file" id="importInput" accept=".json" style="display:none">
+        </div>
+
+        <div class="section">
+            <h3>Dork Engine</h3>
+            <div class="dork-toggles">
+                Providers: <span onclick="toggleDorkProviders(true)">ALL</span> <span onclick="toggleDorkProviders(false)">NONE</span>
+            </div>
+            <div class="provider-config" id="dorkProviderList"></div>
+            <div class="dork-toggles">
+                Tags: <span onclick="toggleDorkTags(true)">ALL</span> <span onclick="toggleDorkTags(false)">NONE</span>
+                <span style="margin-left:auto;color:#555;text-decoration:none;font-size:0.52rem;" id="dorkTagCount"></span>
+            </div>
+            <div class="tag-config" id="dorkTagList"></div>
+            <div class="dork-toggles">Proxy:</div>
+            <select id="dorkProxySelect">
+                <option value="auto">Auto (Race All)</option>
+                <option value="https://api.allorigins.win/raw?url=">AllOrigins</option>
+                <option value="https://corsproxy.io/?">CorsProxy.io</option>
+                <option value="https://api.codetabs.com/v1/proxy?quest=">CodeTabs</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="text" id="dorkProxyCustom" placeholder="https://my-proxy.com/?url=" style="display:none;margin-bottom:5px;">
+            <button class="btn-dork" id="btnDork" onclick="runDorkEngine()">RUN DORK SCAN</button>
+            <div class="dork-stats" id="dorkStats"></div>
+            <div class="dork-preview" id="dorkPreview"></div>
+        </div>
+
+        <div class="section">
+            <h3>Custom Target Scan</h3>
+            <input type="text" id="customTagInput" placeholder="Tags separated by comma">
+            <button class="btn-secondary" onclick="runCustomScan()">SCAN CUSTOM TAGS</button>
+        </div>
+        
+        <h3 style="padding:0 15px;color:#555;font-size:0.65rem;">SYSTEM LOGS</h3>
+        <div class="drone-list" id="sysLog"></div>
+    </div>
+
+    <div id="map-container">
+        <div class="stats-panel">
+            <div class="stat-item">UNITS: <span class="stat-val" id="countTotal">0</span></div>
+            <div class="stat-item">REAL GPS: <span class="stat-val" id="countReal" style="color:var(--success)">0</span></div>
+            <div class="stat-item">ESTIMATED: <span class="stat-val" id="countEst" style="color:var(--alert)">0</span></div>
+            <div style="margin-top:4px;border-top:1px solid #333;padding-top:4px;">
+                <div class="stat-item">2ND PASS: <span class="stat-val" id="countRecovered" style="color:#e0a0ff">0</span></div>
+                <div class="stat-item">DORKS: <span class="stat-val" id="countDork" style="color:#66ff66">0</span></div>
+            </div>
+            <div style="margin-top:4px;font-size:0.65rem;color:#666;border-top:1px solid #333;padding-top:4px;">
+                DOMParser + PROXY RACE
+            </div>
+        </div>
+        <div id="map"></div>
+    </div>
+</main>
+
+<footer>
+    This code is provided by: "GiamMa-based researchers SDR R&D IoT" | <a href="https://x.com/giammaiot2" target="_blank" rel="noopener noreferrer">@GiammaIoT2</a>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // ============================================================
+    //  CONFIG — NO LIMITS
+    // ============================================================
+    const TARGET_TAGS = [
+        "MASS","MASS Code","USV","ASV","AUV","UUV","XLUUV","MUSV","LUSV","ROV","UAV","CUSV",
+        "Glider","Underwater Glider","WaveGlider","Slocum","Seaglider","Spray Glider",
+        "HROV","WROV","OBSROV","TUV","Unmanned","Unman","Uncrewed","Uncrew","Autonomous","Autonom",
+        "Drone","Drones","Remote","Remotely","Piloted","Crewless","Submersible",
+        "Saildrone","Oceanus","Autoship","Armada","SeaKit","XOcean","OceanAlpha",
+        "DriX","Yara Birkeland","Mayflower","Sea Hunter","Ghost Fleet","LASV75","Liberty Class",
+        "Hydrographic USV","Bathymetric Drone","Survey USV","Unmanned Craft","Remote Vessel","Autonomous Vessel"
+    ];
+
+    const PROXY_LIST = [
+        "https://api.allorigins.win/raw?url=",
+        "https://corsproxy.io/?",
+        "https://api.codetabs.com/v1/proxy?quest="
+    ];
+
+    const LIST_TIMEOUT=4000, DETAIL_TIMEOUT=3500, TAG_DELAY=50, DEEP_DELAY=60, PASS2_DELAY=100;
+    const DEEP_CONCURRENCY=5, PASS2_CONCURRENCY=4, DORK_COORD_CONCURRENCY=5, LOG_MAX=8000;
+
+    // ============================================================
+    //  DORK CONFIG
+    // ============================================================
+    const DORK_SITES = [
+        "vesselfinder.com",
+        "marinetraffic.com",
+        "myshiptracking.com",
+        "shipxplorer.com",
+        "fleetmon.com",
+        "vesseltracker.com"
+    ];
+
+    const DDG_DELAY=1200, GOOGLE_DELAY=2500;
+    const TAG_BATCH_SIZE=8;
+
+    // ============================================================
+    //  2ND PASS SOURCES
+    // ============================================================
+    const SECOND_PASS_SOURCES = [
+        {name:'VF Alt',url:m=>`https://www.vesselfinder.com/vessels/${m}`},
+        {name:'VF Det-Alt',url:m=>`https://www.vesselfinder.com/vessels/details-${m}`},
+        {name:'MST Dir',url:m=>`https://www.myshiptracking.com/vessels/${m}`},
+        {name:'MST Rep',url:m=>`https://www.myshiptracking.com/reports?mmsi=${m}`},
+        {name:'FleetMon',url:m=>`https://www.fleetmon.com/vessels/details/${m}/`},
+        {name:'MarineTraf',url:m=>`https://www.marinetraffic.com/en/ais/details/ships/mmsi:${m}/`},
+        {name:'VesselTrk',url:m=>`https://www.vesseltracker.com/en/vessels/${m}`},
+        {name:'ShipLoc',url:m=>`https://www.ship-location.com/vessel/${m}`},
+        {name:'VesselTrkg',url:m=>`https://www.vesseltracking.net/vessel/${m}`},
+        {name:'MST AIS',url:m=>`https://www.myshiptracking.com/ais-data/${m}`},
+        {name:'MST Info',url:m=>`https://www.myshiptracking.com/vessels/info-${m}`}
+    ];
+
+    // ============================================================
+    //  STATE
+    // ============================================================
+    let DRONE_DATABASE=[],map,markers={},isBooting=false,secondPassRecovered=0,dorkRecovered=0;
+    let logBuffer=[],logFlushTimer=null,timerStart=0,timerInterval=null;
+    let scanRunning=false,scanAbort=false;
+
+    // ============================================================
+    //  LOG — buffered with forced flush counter
+    // ============================================================
+    let _logOps=0;
+    function log(msg,type){
+        logBuffer.push({msg,type});
+        _logOps++;
+        if(_logOps%8===0){if(logFlushTimer)clearTimeout(logFlushTimer);flushLogs();}
+        else if(!logFlushTimer) logFlushTimer=setTimeout(flushLogs,100);
+    }
+    function flushLogs(){
+        if(!logBuffer.length){logFlushTimer=null;return;}
+        const el=document.getElementById('sysLog');
+        if(!el){logBuffer=[];logFlushTimer=null;return;}
+        const frag=document.createDocumentFragment();
+        const t=new Date().toLocaleTimeString('en-US',{hour12:false});
+        for(const e of logBuffer){const d=document.createElement('div');d.className=`log-line ${e.type}`;d.innerText=`[${t}] ${e.msg}`;frag.appendChild(d);}
+        el.appendChild(frag);
+        while(el.children.length>LOG_MAX) el.removeChild(el.firstChild);
+        el.scrollTop=el.scrollHeight;
+        logBuffer=[];logFlushTimer=null;
+    }
+    function flushNow(){if(logFlushTimer)clearTimeout(logFlushTimer);flushLogs();}
+
+    // ============================================================
+    //  TIMER
+    // ============================================================
+    function startTimer(){timerStart=Date.now();timerInterval=setInterval(()=>{document.getElementById('timerDisplay').innerText=`ELAPSED: ${((Date.now()-timerStart)/1000).toFixed(1)}s`;},100);}
+    function stopTimer(){if(timerInterval)clearInterval(timerInterval);timerInterval=null;document.getElementById('timerDisplay').innerText=`TOTAL: ${((Date.now()-timerStart)/1000).toFixed(1)}s`;}
+
+    // ============================================================
+    //  PARALLEL PROXY RACE
+    // ============================================================
+    async function fetchWithTimeout(url,timeout=LIST_TIMEOUT){
+        const races=PROXY_LIST.map(proxy=>{
+            const target=proxy+encodeURIComponent(url);
+            const ctrl=new AbortController();
+            const tid=setTimeout(()=>ctrl.abort(),timeout);
+            return fetch(target,{signal:ctrl.signal})
+                .then(r=>{clearTimeout(tid);if(!r.ok)throw new Error(r.status);return r.text();})
+                .then(t=>{if(t.includes("Free usage is limited")||t.length<200)throw new Error("Bad");return t;})
+                .catch(e=>{clearTimeout(tid);throw e;});
+        });
+        try{return await Promise.any(races);}catch{throw new Error("All Proxies Failed");}
+    }
+
+    // ============================================================
+    //  DORK-SPECIFIC FETCH — uses selected proxy from dropdown
+    // ============================================================
+    function dorkFetch(url,timeout){
+        timeout=timeout||6000;
+        const sel=document.getElementById('dorkProxySelect').value;
+        if(sel==='auto') return fetchWithTimeout(url,timeout);
+        const proxy=sel==='custom'?document.getElementById('dorkProxyCustom').value.trim():sel;
+        if(!proxy) return fetchWithTimeout(url,timeout);
+        const target=proxy+encodeURIComponent(url);
+        const ctrl=new AbortController();
+        const tid=setTimeout(()=>ctrl.abort(),timeout);
+        return fetch(target,{signal:ctrl.signal})
+            .then(r=>{clearTimeout(tid);if(!r.ok)throw new Error(r.status);return r.text();})
+            .catch(e=>{clearTimeout(tid);throw e;});
+    }
+
+    // ============================================================
+    //  BATCH DEEP SCAN — parallel workers, NO LIMIT
+    // ============================================================
+    async function batchDeepScan(units){
+        if(!units.length) return new Map();
+        const results=new Map();let idx=0;
+        async function w(){while(idx<units.length){const i=idx++;try{const d=await multiSourceHunter(units[i].mmsi);if(d)results.set(units[i].mmsi,d);}catch{}await new Promise(r=>setTimeout(r,DEEP_DELAY));}}
+        await Promise.all(Array.from({length:Math.min(DEEP_CONCURRENCY,units.length)},()=>w()));
+        return results;
+    }
+
+    // ============================================================
+    //  BOOT — no auto-start, manual START/STOP only
+    // ============================================================
+    window.onload=async function(){
+        initMap();setupImportHandler();initDorkUI();
+        log("System ready. Press START SCAN to begin.","sys");
+        updateStatus("READY",false);
+    };
+
+    // --- START / STOP toggle ---
+    async function toggleScan(){
+        if(scanRunning){
+            scanAbort=true;
+            log("Stopping scan...","warn");
+            flushNow();
+            return;
+        }
+        if(!confirm("Start scan? This will clear the database."))return;
+        DRONE_DATABASE=[];secondPassRecovered=0;dorkRecovered=0;
+        for(let id in markers)map.removeLayer(markers[id]);markers={};
+        document.getElementById('sysLog').innerHTML='';flushLogs();
+        scanAbort=false;scanRunning=true;
+        document.getElementById('btnReboot').innerText='STOP SCAN';
+        document.getElementById('btnReboot').className='btn-danger';
+        try{await autoBootSequence();}
+        catch(e){log('Scan error: '+e.message,'err');}
+        scanRunning=false;scanAbort=false;
+        document.getElementById('btnReboot').innerText='START SCAN';
+        document.getElementById('btnReboot').className='btn-primary';
+    }
+
+    async function autoBootSequence(){
+        if(isBooting)return;isBooting=true;secondPassRecovered=0;
+        updateStatus("HUNTING...",true);setButtonsDisabled(true);
+        document.getElementById('btnReboot').disabled=false;
+        startTimer();
+        let tF=0,tR=0,hit=0;
+        for(let i=0;i<TARGET_TAGS.length;i++){
+            if(scanAbort){log("Scan stopped by user.","warn");break;}
+            updateProgress((i/TARGET_TAGS.length)*100);
+            try{const r=await scrapeTag(TARGET_TAGS[i]);if(r.found>0){hit++;tF+=r.found;tR+=r.real;log(`[${i+1}/${TARGET_TAGS.length}] ${TARGET_TAGS[i]}: +${r.found} (${tR} real)`,"sys");}}
+            catch(e){log(`[${i+1}/${TARGET_TAGS.length}] ${TARGET_TAGS[i]}: ${e.message}`,"err");}
+            if(i<TARGET_TAGS.length-1)await new Promise(r=>setTimeout(r,TAG_DELAY));
+        }
+        stopTimer();isBooting=false;setButtonsDisabled(false);
+        log(`--- 1ST PASS: ${hit}/${TARGET_TAGS.length} tags | ${tF} units | ${tR} real | ${tF-tR} est ---`,"batch");
+        updateStatus("SYSTEM READY",false);updateProgress(100);flushNow();refreshUI();
+        const est=DRONE_DATABASE.filter(d=>d.isEstimated).length;
+        if(est>0&&!scanAbort){log(`2nd pass for ${est} estimated...`,"warn");await runSecondPass();}
+        else if(scanAbort) log("Scan stopped. 2nd pass skipped.","warn");
+        else log("All real GPS.","ok");
+    }
+
+    async function runCustomScan(){
+        const raw=document.getElementById('customTagInput').value.trim();
+        if(!raw)return alert("Enter tags separated by commas.");
+        const tags=raw.split(',').map(t=>t.trim()).filter(t=>t.length>0);
+        if(!tags.length)return alert("No valid tags.");
+        log(`Custom scan: ${tags.join(', ')}`,"sys");updateStatus("SCANNING...",true);startTimer();
+        let totalFound=0,totalReal=0;
+        for(let i=0;i<tags.length;i++){
+            if(scanAbort){log("Custom scan stopped.","warn");break;}
+            try{
+                const r=await scrapeTag(tags[i]);
+                totalFound+=r.found;totalReal+=r.real;
+                if(r.found>0) log(`[${i+1}/${tags.length}] ${tags[i]}: +${r.found} (${r.real} real)`,"ok");
+                else log(`[${i+1}/${tags.length}] ${tags[i]}: nothing found`,"detail");
+            }catch(e){log(`[${i+1}/${tags.length}] ${tags[i]}: ${e.message}`,"err");}
+            if(i<tags.length-1)await new Promise(r=>setTimeout(r,TAG_DELAY));
+        }
+        log(`Custom scan done: +${totalFound} (${totalReal} real)`,totalFound?"ok":"warn");
+        flushNow();refreshUI();stopTimer();updateStatus("SYSTEM READY",false);
+    }
+
+    async function forceReboot(){
+        if(!confirm("Full reboot?"))return;
+        DRONE_DATABASE=[];secondPassRecovered=0;dorkRecovered=0;
+        for(let id in markers)map.removeLayer(markers[id]);markers={};
+        document.getElementById('sysLog').innerHTML='';flushLogs();
+        await autoBootSequence();
+    }
+
+    // ============================================================
+    //  IMPORT / EXPORT / DEDUP
+    // ============================================================
+    function setupImportHandler(){
+        document.getElementById('importInput').addEventListener('change',function(e){
+            const f=e.target.files[0];if(!f)return;
+            const reader=new FileReader();
+            reader.onload=function(ev){
+                try{
+                    const data=JSON.parse(ev.target.result);if(!Array.isArray(data))throw new Error("Not array");
+                    let imp=0,skp=0,upd=0;
+                    for(const item of data){
+                        if(!item.mmsi)continue;
+                        const ex=DRONE_DATABASE.find(d=>d.mmsi===item.mmsi);
+                        if(!ex){if(!item.id)item.id='imp_'+Date.now()+Math.random().toString(36).substr(2,5);DRONE_DATABASE.push(item);imp++;}
+                        else if(ex.isEstimated&&!item.isEstimated){Object.assign(ex,item);upd++;}else skp++;
+                    }
+                    log(`Import: +${imp} new, ${upd} upgraded, ${skp} dupes`,"ok");flushNow();refreshUI();
+                }catch(e){log(`Import err: ${e.message}`,"err");}
+            };
+            reader.readAsText(f);e.target.value='';
+        });
+    }
+    function importDb(){document.getElementById('importInput').click();}
+    function exportDb(){const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(DRONE_DATABASE,null,2));a.download=`aegis_db_${Date.now()}.json`;document.body.appendChild(a);a.click();a.remove();}
+    function dedupDatabase(){
+        const before=DRONE_DATABASE.length;const best=new Map();
+        for(const e of DRONE_DATABASE){if(!e.mmsi)continue;const ex=best.get(e.mmsi);if(!ex||scoreEntry(e)>scoreEntry(ex))best.set(e.mmsi,{...e});}
+        DRONE_DATABASE=Array.from(best.values());
+        log(`Dedup: ${before} -> ${DRONE_DATABASE.length} (-${before-DRONE_DATABASE.length}) | Real: ${DRONE_DATABASE.filter(d=>!d.isEstimated).length}`,"ok");flushNow();refreshUI();
+    }
+    function scoreEntry(e){let s=0;if(!e.isEstimated)s+=100;if(e.name&&!e.name.startsWith('Unit '))s+=30;if(e.type)s+=10;if(e.source&&!e.source.includes('Estimated'))s+=20;return s;}
+
+    // ============================================================
+    //  CORE: LIST EXTRACTION
+    // ============================================================
+    async function scrapeTag(tag){
+        const html=await fetchWithTimeout(`https://www.myshiptracking.com/vessels?side=false&name=${encodeURIComponent(tag)}`,LIST_TIMEOUT);
+        let list=[];
+        const jm=/vessels\s*:\s*(\[.*?\])(?!\s*})/s.exec(html);
+        if(jm){try{JSON.parse(jm[1]).forEach(v=>{if(v.mmsi&&!list.find(x=>x.mmsi===v.mmsi.toString()))list.push({mmsi:v.mmsi.toString(),name:v.shipName,lat:v.lat,lon:v.lon});});}catch{}}
+        if(!list.length){const mr=/mmsi[-:_]?(\d{9})/gi;let m;while((m=mr.exec(html))!==null)if(!list.find(x=>x.mmsi===m[1]))list.push({mmsi:m[1],name:null,lat:null,lon:null});}
+        if(!list.length)return{found:0,real:0};
+        const needDeep=[];let real=0;
+        for(const u of list){
+            if(DRONE_DATABASE.find(d=>d.mmsi==u.mmsi))continue;
+            if(u.lat&&u.lon&&u.lat!==0&&u.lon!==0){addDroneToDb(u.name||`Unit ${u.mmsi}`,u.mmsi,tag,u.lat,u.lon,false,"List JSON");real++;}
+            else needDeep.push(u);
+        }
+        if(needDeep.length){
+            const deep=await batchDeepScan(needDeep);
+            for(const u of needDeep){const r=deep.get(u.mmsi);if(r){addDroneToDb(u.name||`Unit ${u.mmsi}`,u.mmsi,tag,r.lat,r.lon,false,r.source);real++;}else addDroneToDb(u.name||`Unit ${u.mmsi}`,u.mmsi,tag,(Math.random()*140)-70,(Math.random()*360)-180,true,"Estimated (1st)");}
+        }
+        return{found:needDeep.length+real,real};
+    }
+
+    // ============================================================
+    //  FIRST PASS HUNTER
+    // ============================================================
+    async function multiSourceHunter(mmsi){
+        for(const[n,u]of[['VF',`https://www.vesselfinder.com/vessels/details/${mmsi}`],['MST',`https://www.myshiptracking.com/?mmsi=${mmsi}`],['MSTD',`https://www.myshiptracking.com/vessels/details-mmsi-${mmsi}`],['SX',`https://www.shipxplorer.com/vessels?mmsi=${mmsi}`]]){
+            try{const c=extractCoords(await fetchWithTimeout(u,DETAIL_TIMEOUT));if(c)return{...c,source:n};}catch{}
+        }
+        return null;
+    }
+
+    // ============================================================
+    //  SECOND PASS
+    // ============================================================
+    async function runSecondPass(){
+        const est=DRONE_DATABASE.filter(d=>d.isEstimated);if(!est.length){log("[2nd] No estimated.","sys");return;}
+        log(`=== 2ND PASS: ${est.length} ===`,"pass2");
+        updateStatus("2ND PASS...",true);setButtonsDisabled(true);showProgress(true);if(!timerInterval)startTimer();
+        let rec=0,pIdx=0;
+        async function w(){while(pIdx<est.length){if(scanAbort)break;const i=pIdx++,u=est[i];updateProgress((i/est.length)*100);try{const r=await secondPassHunter(u.mmsi);if(r){u.lat=r.lat;u.lng=r.lon;u.isEstimated=false;u.source=r.source+" (2nd)";rec++;secondPassRecovered++;log(`[2nd] ${u.mmsi} -> ${r.source}`,"ok");updateSingleMarker(u);updateStats();}}catch{}await new Promise(r=>setTimeout(r,PASS2_DELAY));}}
+        await Promise.all(Array.from({length:Math.min(PASS2_CONCURRENCY,est.length)},()=>w()));
+        if(scanAbort) log("[2nd] Stopped by user.","warn");
+        updateProgress(100);log(`=== 2ND DONE: +${rec} ===`,rec?"ok":"warn");
+        showProgress(false);stopTimer();setButtonsDisabled(false);updateStatus("SYSTEM READY",false);flushNow();refreshUI();
+    }
+    async function secondPassHunter(mmsi){
+        for(const s of SECOND_PASS_SOURCES){try{const c=extractCoordsAggressive(await fetchWithTimeout((typeof s.url==='function'?s.url(mmsi):s.url),DETAIL_TIMEOUT));if(c)return{...c,source:s.name};}catch{}}
+        for(const[n,u]of[['VF2',`https://www.vesselfinder.com/vessels/details/${mmsi}`],['MST2',`https://www.myshiptracking.com/?mmsi=${mmsi}`],['MSTD2',`https://www.myshiptracking.com/vessels/details-mmsi-${mmsi}`],['SX2',`https://www.shipxplorer.com/vessels?mmsi=${mmsi}`]]){try{const c=extractCoordsAggressive(await fetchWithTimeout(u,DETAIL_TIMEOUT));if(c)return{...c,source:n};}catch{}}
+        try{const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);const r=await fetch(`https://www.vesselfinder.com/vessels/details/${mmsi}`,{signal:c.signal});clearTimeout(t);if(r.ok){const co=extractCoordsAggressive(await r.text());if(co)return{...co,source:'VF-Direct'};}}catch{}
+        return null;
+    }
+
+    // ============================================================
+    //  DORK ENGINE
+    //
+    //  FREEZE ROOT CAUSES FIXED:
+    //  1. CSS: var--border) broke .section -> sidebar not rendered
+    //  2. Regex <script[\s\S]*?> on 500KB HTML = catastrophic backtracking
+    //
+    //  FIX: no [\s\S]*? anywhere in parsers
+    //  - DDG: DOMParser only (fallback uses no strip regex)
+    //  - Google: split on <h3 + URL regex (negated char class, safe)
+    //
+    //  NEW: configurable UI, correct dork format, IMO+MMSI,
+    //  dedup only if both match, 2nd pass for coords,
+    //  proxy selector, no auto-start, STOP support
+    // ============================================================
+
+    // --- Dork UI init ---
+    function initDorkUI(){
+        const pList=document.getElementById('dorkProviderList');
+        for(const site of DORK_SITES){
+            const chip=document.createElement('div');
+            chip.className='provider-chip active';
+            chip.dataset.site=site;
+            chip.textContent=site.split('.')[0];
+            chip.onclick=function(){this.classList.toggle('active');};
+            pList.appendChild(chip);
+        }
+        const tList=document.getElementById('dorkTagList');
+        for(const tag of TARGET_TAGS){
+            const lbl=document.createElement('label');
+            const cb=document.createElement('input');
+            cb.type='checkbox';cb.checked=true;cb.value=tag;
+            lbl.appendChild(cb);
+            lbl.appendChild(document.createTextNode(tag));
+            tList.appendChild(lbl);
+        }
+        updateDorkTagCount();
+        tList.addEventListener('change',updateDorkTagCount);
+        document.getElementById('dorkProxySelect').addEventListener('change',function(){
+            document.getElementById('dorkProxyCustom').style.display=this.value==='custom'?'block':'none';
+        });
+    }
+    function updateDorkTagCount(){
+        document.getElementById('dorkTagCount').innerText=getDorkTags().length+'/'+TARGET_TAGS.length;
+    }
+    function getDorkProviders(){
+        return Array.from(document.querySelectorAll('#dorkProviderList .provider-chip.active')).map(c=>c.dataset.site);
+    }
+    function getDorkTags(){
+        return Array.from(document.querySelectorAll('#dorkTagList input:checked')).map(i=>i.value);
+    }
+    function toggleDorkProviders(on){
+        document.querySelectorAll('#dorkProviderList .provider-chip').forEach(c=>{
+            if(on)c.classList.add('active');else c.classList.remove('active');
+        });
+    }
+    function toggleDorkTags(on){
+        document.querySelectorAll('#dorkTagList input').forEach(i=>i.checked=on);
+        updateDorkTagCount();
+    }
+
+    // --- IMO check digit validation ---
+    function isValidIMO(num){
+        if(!num||num.length!==7)return false;
+        for(let i=0;i<7;i++) if(num.charCodeAt(i)<48||num.charCodeAt(i)>57) return false;
+        let sum=0;
+        for(let i=0;i<6;i++) sum+=(num.charCodeAt(i)-48)*(7-i);
+        const check=sum%10===0?0:10-(sum%10);
+        return (num.charCodeAt(6)-48)===check;
+    }
+
+    // --- Resolve IMO -> MMSI ---
+    async function resolveIMOtoMMSI(imo){
+        const urls=['https://www.vesselfinder.com/vessels?imo='+imo,'https://www.myshiptracking.com/vessels?imo='+imo];
+        for(const url of urls){
+            try{
+                const html=await fetchWithTimeout(url,DETAIL_TIMEOUT);
+                const m=html.match(/mmsi\s*[:=]\s*"?(\d{9})"?/i)||html.match(/\bmmsi[-:_]?(\d{9})\b/i);
+                if(m){
+                    const mid=Math.floor(parseInt(m[1])/1000000);
+                    if(mid>=201&&mid<=775) return m[1];
+                }
+            }catch{}
+        }
+        return null;
+    }
+
+    // --- Dedup: duplicate ONLY if both IMO and MMSI match ---
+    function dedupPush(arr,item){
+        for(let i=0;i<arr.length;i++){
+            const e=arr[i];
+            const sameMmsi=e.mmsi&&item.mmsi&&e.mmsi===item.mmsi;
+            const sameImo=e.imo&&item.imo&&e.imo===item.imo;
+            if(sameMmsi&&sameImo) return false;
+            if(sameMmsi){
+                if(!e.imo&&item.imo){e.imo=item.imo;return false;}
+                if(e.imo&&!item.imo) return false;
+            }
+            if(sameImo){
+                if(!e.mmsi&&item.mmsi){e.mmsi=item.mmsi;return false;}
+                if(e.mmsi&&!item.mmsi) return false;
+            }
+        }
+        arr.push(item);
+        return true;
+    }
+
+    // --- Extract numbers from text ---
+    function extractNumsFromText(text,site,results,seenMmsi,seenImo,srcPrefix){
+        const nums=text.match(/\b(\d{7,9})\b/g);
+        if(!nums) return;
+        for(const n of nums){
+            if(n.length===9){
+                const mid=Math.floor(parseInt(n)/1000000);
+                if(mid>=201&&mid<=775&&!seenMmsi.has(n)){
+                    seenMmsi.add(n);
+                    results.push({mmsi:n,imo:null,name:extractVesselName(text),source:srcPrefix+'/'+site,tags:''});
+                }
+            }else if(n.length===7&&isValidIMO(n)){
+                if(!seenImo.has(n)){
+                    seenImo.add(n);
+                    results.push({mmsi:null,imo:n,name:extractVesselName(text),source:srcPrefix+'/'+site,tags:''});
+                }
+            }
+        }
+    }
+
+    // --- MAIN DORK ENGINE ---
+    async function runDorkEngine(){
+        const sites=getDorkProviders();
+        const tags=getDorkTags();
+        if(!sites.length){log("[dork] No providers selected","err");return;}
+        if(!tags.length){log("[dork] No tags selected","err");return;}
+
+        // Build batched queries: site:X "IMO" OR "MMSI" AND ("tag1" OR "tag2" ...)
+        const queries=[];
+        for(const site of sites){
+            for(let i=0;i<tags.length;i+=TAG_BATCH_SIZE){
+                const batch=tags.slice(i,i+TAG_BATCH_SIZE);
+                const tagPart=batch.map(t=>`"${t}"`).join(' OR ');
+                const q=`site:${site} "IMO" OR "MMSI" AND (${tagPart})`;
+                queries.push({
+                    site, tags:batch.join(','), q,
+                    ddgUrl:`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
+                    googleUrl:`https://www.google.com/search?q=${encodeURIComponent(q)}&num=100&hl=en`
+                });
+            }
+        }
+
+        const proxySel=document.getElementById('dorkProxySelect');
+        const proxyName=proxySel.options[proxySel.selectedIndex].text;
+        log(`=== DORK: ${queries.length} query | ${sites.length} sites | ${tags.length} tags | Proxy: ${proxyName} ===`,"dork");
+        log(`Format: site:X "IMO" OR "MMSI" AND ("tag" OR ...)`,"dork");
+        updateStatus("DORK P1...",true);setButtonsDisabled(true);showProgress(true);startTimer();
+
+        const collected=[];
+        let ddgOk=0,ddgBlk=0,googOk=0,googBlk=0,qIdx=0;
+
+        async function dorkWorker(){
+            while(qIdx<queries.length){
+                if(scanAbort)break;
+                const i=qIdx++,q=queries[i];
+                updateProgress((i/queries.length)*50);
+                document.getElementById('dorkStats').innerText=`P1: ${i+1}/${queries.length} | DDG:${ddgOk}ok/${ddgBlk}blk | G:${googOk}ok/${googBlk}blk | Found:${collected.length}`;
+                document.getElementById('dorkPreview').innerText=q.q.substring(0,160);
+
+                let foundHere=0;
+
+                // --- DDG (DOMParser) — uses selected proxy ---
+                try{
+                    const html=await dorkFetch(q.ddgUrl,6000);
+                    if(html.includes("robot check")||html.includes("captcha")||html.length<800){
+                        ddgBlk++;
+                    }else{
+                        ddgOk++;
+                        const items=parseDDGWithDOM(html,q.site);
+                        for(const it of items){it.tags=q.tags;if(dedupPush(collected,it))foundHere++;}
+                        if(foundHere) log(`[ddg] ${q.site} [${q.tags}]: +${foundHere}`,"dork");
+                    }
+                }catch{ddgBlk++;}
+                flushNow();
+                if(foundHere){await new Promise(r=>setTimeout(r,DDG_DELAY));continue;}
+
+                // --- Google fallback — uses selected proxy ---
+                try{
+                    const html=await dorkFetch(q.googleUrl,6000);
+                    if(html.includes("unusual traffic")||html.includes("captcha")||html.includes("Before you continue")||html.length<800){
+                        googBlk++;
+                    }else{
+                        googOk++;
+                        const items=parseGoogleSimple(html,q.site);
+                        for(const it of items){it.tags=q.tags;if(dedupPush(collected,it))foundHere++;}
+                        if(foundHere) log(`[goog] ${q.site} [${q.tags}]: +${foundHere}`,"dork");
+                    }
+                }catch{googBlk++;}
+                flushNow();
+                await new Promise(r=>setTimeout(r,foundHere?DDG_DELAY:GOOGLE_DELAY));
+            }
+        }
+
+        await Promise.all(Array.from({length:Math.min(2,queries.length)},()=>dorkWorker()));
+
+        if(scanAbort){
+            log("[dork] Stopped by user.","warn");
+            updateProgress(100);stopTimer();setButtonsDisabled(false);
+            updateStatus("SYSTEM READY",false);showProgress(false);flushNow();return;
+        }
+
+        log(`--- P1 DONE: ${collected.length} entities found ---`,"batch");flushNow();
+
+        // --- Resolve IMO-only -> MMSI ---
+        const imoOnly=collected.filter(e=>!e.mmsi&&e.imo);
+        const withMmsi=collected.filter(e=>e.mmsi);
+        let resolved=0;
+
+        if(imoOnly.length){
+            log(`Resolving ${imoOnly.length} IMO without MMSI...`,"dork");
+            updateStatus("DORK RESOLVE...",true);
+            let ri=0;
+            async function resolveWorker(){
+                while(ri<imoOnly.length){
+                    if(scanAbort)break;
+                    const item=imoOnly[ri++];
+                    updateProgress(50+(ri/imoOnly.length)*10);
+                    try{
+                        const m=await resolveIMOtoMMSI(item.imo);
+                        if(m){item.mmsi=m;withMmsi.push(item);resolved++;log(`[resolve] IMO ${item.imo} -> MMSI ${m}`,"ok");}
+                    }catch{}
+                    if(ri%3===0) flushNow();
+                    await new Promise(r=>setTimeout(r,DEEP_DELAY));
+                }
+            }
+            await Promise.all(Array.from({length:Math.min(3,imoOnly.length)},()=>resolveWorker()));
+            log(`Resolve: ${resolved}/${imoOnly.length} IMO resolved`,"batch");flushNow();
+        }
+
+        // Filter out already in DB
+        const newUnits=withMmsi.filter(e=>!DRONE_DATABASE.find(d=>d.mmsi===e.mmsi));
+        log(`With MMSI: ${withMmsi.length} | New: ${newUnits.length} | Already in DB: ${withMmsi.length-newUnits.length} | Unresolved IMO: ${imoOnly.length-resolved}`,"batch");
+
+        if(newUnits.length){
+            log(`Adding ${newUnits.length} units to DB...`,"dork");
+            updateStatus("DORK ADD...",true);
+            for(const u of newUnits){
+                addDroneToDb(u.name||`Unit ${u.mmsi}`,u.mmsi,'Dork:'+u.tags,(Math.random()*140)-70,(Math.random()*360)-180,true,'Dork:'+u.source);
+                dorkRecovered++;
+            }
+            updateStats();refreshUI();flushNow();
+            log(`Launching 2nd pass for ${newUnits.length} Dork units...`,"warn");
+            stopTimer();showProgress(false);setButtonsDisabled(false);updateStatus("SYSTEM READY",false);flushNow();
+            await runSecondPass();
+            return;
+        }
+
+        updateProgress(100);stopTimer();setButtonsDisabled(false);
+        updateStatus("SYSTEM READY",false);showProgress(false);flushNow();refreshUI();
+        log(`=== DORK COMPLETE ===`,"dork");
+        log(`DDG: ${ddgOk}ok/${ddgBlk}blk | Google: ${googOk}ok/${googBlk}blk`,"dork");
+        log(`Collected: ${collected.length} | With MMSI: ${withMmsi.length} | New: ${newUnits.length}`,"dork");
+        if(imoOnly.length-resolved>0) log(`Unresolved IMO: ${imoOnly.length-resolved} (no MMSI, skipped)`,"dork-warn");
+        document.getElementById('dorkStats').innerText=`DONE | Found:${collected.length} New:${newUnits.length}`;
+        document.getElementById('dorkPreview').innerText='';
+    }
+
+    // ============================================================
+    //  DDG PARSER — DOMParser, zero [\s\S]*?
+    // ============================================================
+    function parseDDGWithDOM(html,site){
+        const results=[];
+        const seenMmsi=new Set(),seenImo=new Set();
+        try{
+            const doc=new DOMParser().parseFromString(html,'text/html');
+            // Method 1: DDG result blocks
+            const blocks=doc.querySelectorAll('.result');
+            for(const r of blocks){
+                const linkEl=r.querySelector('.result__a');
+                const snippetEl=r.querySelector('.result__snippet');
+                const titleEl=r.querySelector('.result__title');
+                const combined=[linkEl?linkEl.href:'',linkEl?linkEl.textContent:'',snippetEl?snippetEl.textContent:'',titleEl?titleEl.textContent:''].join(' ');
+                extractNumsFromText(combined,site,results,seenMmsi,seenImo,'DDG');
+            }
+            // Method 2: fallback — links to target site
+            if(!results.length){
+                const allLinks=doc.querySelectorAll('a[href]');
+                for(const a of allLinks){
+                    if(a.href.includes(site)){
+                        extractNumsFromText(a.href+' '+(a.textContent||''),site,results,seenMmsi,seenImo,'DDG');
+                    }
+                }
+            }
+            // Method 3: text around site name
+            if(!results.length){
+                const bodyText=doc.body?doc.body.textContent:'';
+                const siteName=site.split('.')[0];
+                const chunks=bodyText.split(siteName);
+                for(const chunk of chunks){
+                    extractNumsFromText(chunk.substring(0,300),site,results,seenMmsi,seenImo,'DDG');
+                }
+            }
+        }catch(e){
+            // Fallback: direct scan without strip — zero [\s\S]*?
+            extractNumsFromText(html,site,results,seenMmsi,seenImo,'DDG');
+        }
+        return results;
+    }
+
+    // ============================================================
+    //  GOOGLE PARSER — zero [\s\S]*? anywhere
+    // ============================================================
+    function parseGoogleSimple(html,site){
+        const results=[];
+        const seenMmsi=new Set(),seenImo=new Set();
+
+        // Method 1: <h3> titles via split (zero backtracking risk)
+        const h3Parts=html.split('<h3');
+        for(let i=1;i<h3Parts.length;i++){
+            const endIdx=h3Parts[i].indexOf('<\/h3>');
+            if(endIdx===-1) continue;
+            const raw=h3Parts[i].substring(0,endIdx);
+            const text=raw.replace(/<[^>]*>/g,' ').replace(/&[^;]+;/g,' ');
+            extractNumsFromText(text,site,results,seenMmsi,seenImo,'GOOG');
+        }
+
+        // Method 2: URLs containing site + number (negated char class, safe)
+        const siteEsc=site.replace(/\./g,'\\.');
+        const urlRe=new RegExp('https?://'+siteEsc+'[^"\\s<>]*?(\\d{7,9})','gi');
+        let um;
+        while((um=urlRe.exec(html))!==null){
+            const n=um[1];
+            if(n.length===9){
+                const mid=Math.floor(parseInt(n)/1000000);
+                if(mid>=201&&mid<=775&&!seenMmsi.has(n)){
+                    seenMmsi.add(n);
+                    results.push({mmsi:n,imo:null,name:null,source:'GOOG/'+site,tags:''});
+                }
+            }else if(n.length===7&&isValidIMO(n)){
+                if(!seenImo.has(n)){
+                    seenImo.add(n);
+                    results.push({mmsi:null,imo:n,name:null,source:'GOOG/'+site,tags:''});
+                }
+            }
+        }
+
+        // Method 3: broad scan if still empty
+        if(!results.length){
+            extractNumsFromText(html,site,results,seenMmsi,seenImo,'GOOG');
+        }
+
+        return results;
+    }
+
+    // ============================================================
+    //  VESSEL NAME CLEANER
+    // ============================================================
+    function extractVesselName(raw){
+        if(!raw||raw.length<3)return null;
+        let c=raw.replace(/\b\d{9}\b/g,' ').replace(/\b\d{7}\b/g,' ');
+        c=c.replace(/[-|–—:]/g,' ').replace(/\s+/g,' ').trim();
+        c=c.replace(/^(Vessel|Ship|Details|Tracking|AIS)\s*/i,'').trim();
+        c=c.replace(/^(MMSI\s*-?\s*|IMO\s*-?\s*)/i,'').trim();
+        c=c.replace(/\s*(Vessel|Ship|Details|Tracking|AIS|Finder|Traffic|MyShipTracking|ShipXplorer|FleetMon|Tracker)\s*$/i,'').trim();
+        c=c.replace(/\b\d+\b/g,'').replace(/\s+/g,' ').trim();
+        return(c.length>=3&&c.length<=50&&!/^[\d\s\-_|.]+$/.test(c))?c:null;
+    }
+
+    // ============================================================
+    //  COORDINATE EXTRACTION
+    // ============================================================
+    function extractCoords(html){
+        const lm=/(?:lat|latitude)\s*[:=]\s*(-?\d+\.\d+)/gi.exec(html);
+        const ln=/(?:lon|lng|longitude)\s*[:=]\s*(-?\d+\.\d+)/gi.exec(html);
+        if(lm&&ln)return{lat:parseFloat(lm[1]),lon:parseFloat(ln[1])};
+        return null;
+    }
+
+    function extractCoordsAggressive(html){
+        const s=extractCoords(html);if(s)return s;
+        const dL=/data-(?:lat|latitude|y|map-lat)\s*=\s*["'](-?\d+\.?\d*)["']/i.exec(html);
+        const dN=/data-(?:lon|lng|longitude|x|map-lon|map-lng)\s*=\s*["'](-?\d+\.?\d*)["']/i.exec(html);
+        if(dL&&dN){const a=parseFloat(dL[1]),b=parseFloat(dN[1]);if(iv(a,b))return{lat:a,lon:b};}
+        for(const p of[/(?:position|location|coords?|coordinates?|last\s+(?:seen|pos|reported)|current\s+loc)[^0-9]{0,250}?(-?\d{1,3}\.\d{2,})\s*[,\s\/;\|]+(-?\d{1,3}\.\d{2,})/is,
+            /(-?\d{1,3}\.\d{2,})\s*[,\s\/;\|]+(-?\d{1,3}\.\d{2,})[^a-zA-Z]{0,250}?(?:position|location|coords?|coordinates?)/is]){
+            const m=p.exec(html);if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(iv(a,b))return{lat:a,lon:b};}
+        }
+        for(const p of[/(?:ll=|@)(-?\d+\.\d+),(-?\d+\.\d+)/,/center=(-?\d+\.\d+),(-?\d+\.\d+)/,/markers=(-?\d+\.\d+),(-?\d+\.\d+)/]){
+            const m=p.exec(html);if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(iv(a,b))return{lat:a,lon:b};}
+        }
+        const pf=/(-?\d{1,3}\.\d{2,8})\s*[,\s;|\/\(\)\[\]{}]+(-?\d{1,3}\.\d{2,8})/g;let pm,at=0;
+        while((pm=pf.exec(html))!==null&&at<30){at++;const a=parseFloat(pm[1]),b=parseFloat(pm[2]);
+            if(iv(a,b)){const ctx=html.substring(Math.max(0,pm.index-400),Math.min(html.length,pm.index+200)).toLowerCase();
+            if(/(?:lat|lon|pos|coord|location|position|map|ais|vessel|ship|track|port|nav|course|speed|heading|naut|marin)/.test(ctx))return{lat:a,lon:b};}
+        }
+        const jL=/(?:var|let|const)\s+(?:lat|latitude|y)\s*=\s*(-?\d+\.\d+)/i.exec(html);
+        const jN=/(?:var|let|const)\s+(?:lon|lng|longitude|x)\s*=\s*(-?\d+\.\d+)/i.exec(html);
+        if(jL&&jN){const a=parseFloat(jL[1]),b=parseFloat(jN[1]);if(iv(a,b))return{lat:a,lon:b};}
+        const hL=/<input[^>]*name=["'](?:lat|latitude)["'][^>]*value=["'](-?\d+\.?\d*)["']/i.exec(html);
+        const hN=/<input[^>]*name=["'](?:lon|lng|longitude)["'][^>]*value=["'](-?\d+\.?\d*)["']/i.exec(html);
+        if(hL&&hN){const a=parseFloat(hL[1]),b=parseFloat(hN[1]);if(iv(a,b))return{lat:a,lon:b};}
+        return null;
+    }
+
+    function iv(lat,lon){return !isNaN(lat)&&!isNaN(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180&&!(lat===0&&lon===0);}
+
+    // ============================================================
+    //  DATABASE & MAP
+    // ============================================================
+    function addDroneToDb(name,mmsi,type,lat,lng,isEstimated,source){
+        DRONE_DATABASE.push({id:'a_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),name,mmsi:mmsi.toString(),type,lat,lng,status:"ACTIVE",isEstimated,source});
+    }
+
+    function initMap(){
+        map=L.map('map',{zoomControl:false,attributionControl:false}).setView([20,0],2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+        L.control.zoom({position:'bottomright'}).addTo(map);
+    }
+
+    function refreshUI(){for(let id in markers)map.removeLayer(markers[id]);markers={};DRONE_DATABASE.forEach(d=>createMarkerForDrone(d));updateStats();}
+
+    function createMarkerForDrone(drone){
+        let color='#66fcf1';
+        if(drone.type==='Saildrone')color='#ffcc00';
+        if(drone.source&&drone.source.includes('2nd'))color='#e0a0ff';
+        if(drone.source&&drone.source.includes('Dork'))color='#66ff66';
+        let radius=5,fillColor=color,fillOpacity=0.8,weight=1,dashArray=null;
+        if(drone.isEstimated){fillColor='transparent';color='#ff4d4d';weight=2;dashArray='5,5';fillOpacity=0;}
+        const marker=L.circleMarker([drone.lat,drone.lng],{radius,fillColor,color,weight,fillOpacity,dashArray}).addTo(map);
+        let sh;
+        if(drone.isEstimated)sh="<span style='color:#ff4d4d'>ESTIMATED</span>";
+        else if(drone.source&&drone.source.includes('2nd'))sh="<span style='color:#e0a0ff'>REAL GPS (2ND PASS)</span>";
+        else if(drone.source&&drone.source.includes('Dork'))sh="<span style='color:#66ff66'>REAL GPS (DORK)</span>";
+        else sh="<span style='color:#00ff9d'>REAL GPS</span>";
+        marker.bindPopup(`<b>${drone.name}</b><br>MMSI: ${drone.mmsi}<br>Type: ${drone.type}<br>${sh}<br><small>Source: ${drone.source}</small><hr style="border-color:#333;margin:4px 0"><a href="https://www.vesselfinder.com/vessels/details/${drone.mmsi}" target="_blank" style="color:#fff">[VF]</a> | <a href="https://www.myshiptracking.com/vessels/details-mmsi-${drone.mmsi}" target="_blank" style="color:#fff">[MST]</a> | <a href="https://www.google.com/search?q=${drone.mmsi}" target="_blank" style="color:#fff">[Google]</a>`);
+        markers[drone.id]=marker;
+    }
+
+    function updateSingleMarker(u){if(markers[u.id]){map.removeLayer(markers[u.id]);delete markers[u.id];}createMarkerForDrone(u);}
+
+    function updateStats(){
+        const r=DRONE_DATABASE.filter(d=>!d.isEstimated).length,e=DRONE_DATABASE.filter(d=>d.isEstimated).length;
+        document.getElementById('countTotal').innerText=DRONE_DATABASE.length;
+        document.getElementById('countReal').innerText=r;
+        document.getElementById('countEst').innerText=e;
+        document.getElementById('countRecovered').innerText=secondPassRecovered;
+        document.getElementById('countDork').innerText=dorkRecovered;
+    }
+
+    function showProgress(v){document.getElementById('progressBar').classList.toggle('visible',v);if(!v)document.getElementById('progressFill').style.width='0%';}
+    function updateProgress(p){document.getElementById('progressFill').style.width=Math.min(100,p)+'%';}
+    function setButtonsDisabled(d){['btnDedup','btnPass2','btnDork'].forEach(id=>{document.getElementById(id).disabled=d;});}
+    function updateStatus(msg,active){const el=document.getElementById('sysStatus');if(el){el.innerText=msg;el.classList.toggle('active',active);}}
+</script>
+</body>
+</html>
